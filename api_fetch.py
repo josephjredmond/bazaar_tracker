@@ -17,6 +17,6 @@ if response.status_code == 200: # if the request was successful
 
 
     #convert epoch to YYYY_MM_DD HH_MM_SS
-    dote = time.strftime('%Y_%m_%d_%H_%M_%S', time.localtime(data["lastUpdated"]/1000))
-    with open("./data/bazaar_data_" + dote + ".json", "w") as file:
+    date = time.strftime('%Y_%m_%d_%H_%M_%S', time.localtime(data["lastUpdated"]/1000))
+    with open("./data/bazaar_data_" + date + ".json", "w") as file:
             json.dump(data, file)
