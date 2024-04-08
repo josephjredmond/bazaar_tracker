@@ -3,6 +3,7 @@ import pandas as pd
 import time
 import os
 import json
+import sqlite3
 
 def process():
     if not os.path.exists('data'):
@@ -112,6 +113,66 @@ def process():
             # Save the new data
             df.to_csv(f'preprocessed/{item}.csv', index=False)
 
+
+def process_db():
+    if not os.path.exists('data'):
+        os.makedirs('data')
+    
+    conn = sqlite3.connect('data.db')
+
+    cursor = conn.cursor()
+
+    # """
+    #                CREATE TABLE IF NOT EXISTS bazaar 
+    #                 (date INTEGER, item TEXT, sell_price REAL, 
+    #                 sell_volume INTEGER, sell_moving_week INTEGER, 
+    #                 sell_orders INTEGER, buy_price REAL, 
+    #                 buy_volume INTEGER, buy_moving_week INTEGER, 
+    #                 buy_orders INTEGER, max_sell_price REAL, min_buy_price REAL)"""
+
+    cursor.execute("""
+                   CREATE TABLE IF NOT EXISTS bazaar 
+                    (date INTEGER, item TEXT, sell_price REAL, 
+                    sell_volume INTEGER, sell_moving_week INTEGER, 
+                    buy_price REAL, buy_volume INTEGER, buy_moving_week INTEGER)""")
+
+    # get all the files in the data folder
+    data_files = os.listdir('data')
+    data_files = [f for f in data_files if f.endswith('.json')]
+
+    # cols = ['date', 'item', 'sell_price', 'sell_volume', 'sell_moving_week', 'sell_orders', 'buy_price', 'buy_volume', 'buy_moving_week', 'buy_orders', 'max_sell_price', 'min_buy_price']
+    cols = ['date', 'item', 'sell_price', 'sell_volume', 'sell_moving_week', 'buy_price', 'buy_volume', 'buy_moving_week'] 
+ 
+    index = 0
+
+    for file_path in data_files:
+
+        # load the data from the file
+        data = ""
+        with open(f'data/{file_path}', 'r') as f:
+            data = json.load(f)
+
+        # Extract date from data 
+        recorded = int(data["lastUpdated"]/1000) 
+
+        for product in data["products"]: 
+            index += 1
+
+            # quick_status
+            quick_status = data["products"][product]["quick_status"] 
+            item = quick_status["productId"]
+            item = item.replace(":", "-")
+            sell_price = quick_status["sellPrice"]
+            sell_volume = quick_status["sellVolume"]
+            sell_moving_week = quick_status["sellMovingWeek"] 
+            buy_price = quick_status["buyPrice"]
+            buy_volume = quick_status["buyVolume"]
+            buy_moving_week = quick_status["buyMovingWeek"] 
+
+            cursor.execute("INSERT INTO bazaar VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (recorded, item, sell_price, sell_volume, sell_moving_week, buy_price, buy_volume, buy_moving_week))
+
+    conn.commit()
+
 def load_data():
     data_files = os.listdir('preprocessed')
     data_files = [f for f in data_files if f.endswith('.csv')]
@@ -124,4 +185,4 @@ def load_data():
     return data
 
 if __name__ == "__main__":
-    process()
+    process_db()
