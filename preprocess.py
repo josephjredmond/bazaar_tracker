@@ -15,6 +15,7 @@ def process():
     # get all the files in the data folder
     data_files = os.listdir('data')
     data_files = [f for f in data_files if f.endswith('.json')]
+    data_files.sort()
 
     cols = ['Date', 'item', 'sell_price', 'sell_volume', 'sell_moving_week', 'sell_orders', 'buy_price', 'buy_volume', 'buy_moving_week', 'buy_orders', 'max_sell_price', 'min_buy_price']
 
@@ -115,6 +116,9 @@ def process():
 
 
 def process_db():
+    if not os.path.exists('processed'):
+        os.makedirs('processed')
+
     if not os.path.exists('data'):
         os.makedirs('data')
     
@@ -139,6 +143,7 @@ def process_db():
     # get all the files in the data folder
     data_files = os.listdir('data')
     data_files = [f for f in data_files if f.endswith('.json')]
+    data_files.sort()
 
     # cols = ['date', 'item', 'sell_price', 'sell_volume', 'sell_moving_week', 'sell_orders', 'buy_price', 'buy_volume', 'buy_moving_week', 'buy_orders', 'max_sell_price', 'min_buy_price']
     cols = ['date', 'item', 'sell_price', 'sell_volume', 'sell_moving_week', 'buy_price', 'buy_volume', 'buy_moving_week'] 
@@ -152,22 +157,33 @@ def process_db():
         with open(f'data/{file_path}', 'r') as f:
             data = json.load(f)
 
+        os.rename(f'data/{file_path}', f'processed/{file_path}')
+        
         # Extract date from data 
         recorded = int(data["lastUpdated"]/1000) 
 
         for product in data["products"]: 
             index += 1
 
-            # quick_status
-            quick_status = data["products"][product]["quick_status"] 
-            item = quick_status["productId"]
+
+
+            item = product
             item = item.replace(":", "-")
-            sell_price = quick_status["sellPrice"]
-            sell_volume = quick_status["sellVolume"]
-            sell_moving_week = quick_status["sellMovingWeek"] 
-            buy_price = quick_status["buyPrice"]
-            buy_volume = quick_status["buyVolume"]
-            buy_moving_week = quick_status["buyMovingWeek"] 
+            sell_price = 0.0
+            sell_volume = 0
+            sell_moving_week = 0
+            buy_price = 0.0
+            buy_volume = 0
+            buy_moving_week = 0
+            # quick_status
+            if "quick_status" in data["products"][product]:
+                quick_status = data["products"][product]["quick_status"] 
+                sell_price = quick_status["sellPrice"]
+                sell_volume = quick_status["sellVolume"]
+                sell_moving_week = quick_status["sellMovingWeek"] 
+                buy_price = quick_status["buyPrice"]
+                buy_volume = quick_status["buyVolume"]
+                buy_moving_week = quick_status["buyMovingWeek"] 
 
             cursor.execute("INSERT INTO bazaar VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (recorded, item, sell_price, sell_volume, sell_moving_week, buy_price, buy_volume, buy_moving_week))
 
@@ -182,7 +198,12 @@ def load_data():
         df = pd.read_csv(f'preprocessed/{file_path}')
         data[file_path.replace('.csv', '')] = df
 
-    return data
+def load_data_db(database = 'data.db'):
+    con = sqlite3.connect(database) 
+
+    dataframe = pd.read_sql_query("SELECT * FROM bazaar", con)
+
+    return dataframe
 
 if __name__ == "__main__":
     process_db()

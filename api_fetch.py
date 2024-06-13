@@ -1,5 +1,6 @@
 #https://api.hypixel.net/v2/skyblock/bazaar
 
+from preprocess import process_db
 import requests
 import json
 import time
@@ -19,4 +20,6 @@ if response.status_code == 200: # if the request was successful
     #convert epoch to YYYY_MM_DD HH_MM_SS
     date = time.strftime('%Y-%m-%d_%H_%M_%S', time.localtime(data["lastUpdated"]/1000))
     with open("./data/bazaar_" + date + ".json", "w") as file:
-            json.dump(data, file)
+        json.dump(data, file)
+
+    process_db() 
